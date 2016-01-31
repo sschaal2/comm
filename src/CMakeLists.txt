@@ -30,17 +30,16 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo) # Optimization with debugging info
 #set(CMAKE_BUILD_TYPE Debug)         # Debug
 
 # local defines
-include_directories(BEFORE ../include)
 include_directories(BEFORE ../src)
 
 set(SOURCES
-	udp_communication.c
-	udp_main.c )
+	UDP_communication.cpp
+	UDP_main.cpp )
 
 set(HEADERS
-	../include/udp_communication.h )
+	UDP_communication.h )
 
-add_library(comm udp_communication.c)
+add_library(comm UDP_communication.cpp)
 install(FILES ${HEADERS} DESTINATION ${LAB_INCLUDES})
 install(TARGETS comm ARCHIVE DESTINATION ${LAB_LIBDIR})
 
