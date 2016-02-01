@@ -68,8 +68,9 @@ UDP_communication(int serverPortNum,
 		int serverFlag)
 {
 
-	int            sockAddrSize;   // size of socket address structure
-	unsigned int   opts;           // socket options
+	int            	sockAddrSize;   // size of socket address structure
+	unsigned int   	opts;           // socket options
+	unsigned int	n,m;
 
 	// if something goes wrong, the socket is inactive
 	active = FALSE;
@@ -101,17 +102,23 @@ UDP_communication(int serverPortNum,
 	}
 
 	// create a UDP-based socket
-	if ((sFd = socket (AF_INET, SOCK_DGRAM, 0)) == ERROR) {
+	if ((sFd = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == ERROR) {
 		printf("Error: could not create socket\n");
 		return;
 	}
+
+	// check for socket buffer size
+	m = sizeof(n);
+	getsockopt(sFd,SOL_SOCKET,SO_RCVBUF,&n, &m);
+	printf("Socket buffer is %d bytes\n",n);
+	fflush(stdout);
 
 	// make sure the socket uses blocking mode
 	opts = FALSE;
 	ioctl(sFd,FIONBIO,(unsigned long) (&opts));
 
 	/*
-#else
+#if 0
 
   fcntl(sFd,F_GETFL,&opts);
   //printf("socket opts = 0x%x\n",opts & O_NONBLOCK);
@@ -386,9 +393,12 @@ testUDPServer(char *name)
 	for (i=1; i<=n_bytes; ++i)
 		getchar();
 
+	// initialize
+	buf.ibuf[0] = 0;
+
 	while (buf.ibuf[0] != -1) {
 
-		// read data as much as availabe
+		// read data as much as available
 		while ((n_bytes_ready=udp.checkUDPSocket())) {
 			n_bytes = udp.readUDPSocket(buf.cbuf,bufLen,NULL);
 			average_message_size += n_bytes;
@@ -399,10 +409,7 @@ testUDPServer(char *name)
 			}
 			++expected_message;
 
-			// this break statement add robustness in vxWorks
 			average_ready_size += n_bytes_ready;
-			if (n_bytes_ready - n_bytes <= 0)
-				break;
 		}
 
 		// wait a moment for new data
