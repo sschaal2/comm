@@ -103,6 +103,7 @@ UDP_communication(int serverPortNum,
 
 	// create a UDP-based socket
 	if ((sFd = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == ERROR) {
+//		if ((sFd = socket (AF_INET, SOCK_STREAM, 0)) == ERROR) {
 		printf("Error: could not create socket\n");
 		return;
 	}
@@ -356,19 +357,19 @@ writeUDPSocket(char *buf,
 
  ******************************************************************************/
 #define TESTPORT     5002
-#define BUFLEN       16
+#define IBUFLEN      100
+#define CBUFLEN		 (IBUFLEN*sizeof(int))
 void
 testUDPServer(char *name)
 {
 	union {
-		char cbuf[BUFLEN*4];
-		int  ibuf[BUFLEN];
+		char cbuf[CBUFLEN];
+		int  ibuf[IBUFLEN];
 	} buf;
 
 	int  i;
 	int  n_bytes;
 	int  n_bytes_ready;
-	int  bufLen=BUFLEN*4;
 	int  count_packages=0;
 	int  error_packages=0;
 	int  expected_message = 1;
@@ -400,11 +401,12 @@ testUDPServer(char *name)
 
 		// read data as much as available
 		while ((n_bytes_ready=udp.checkUDPSocket())) {
-			n_bytes = udp.readUDPSocket(buf.cbuf,bufLen,NULL);
+			n_bytes = udp.readUDPSocket(buf.cbuf,CBUFLEN,NULL);
 			average_message_size += n_bytes;
 			++count_packages;
 			if (expected_message != buf.ibuf[0] && buf.ibuf[0] != -1) {
 				++error_packages;
+				printf("\n%d != %d (expected)",buf.ibuf[0],expected_message);
 				expected_message = buf.ibuf[0];
 			}
 			++expected_message;
@@ -447,15 +449,13 @@ void
 testUDPClient(int n_bytes, char *name)
 {
 	union {
-		char cbuf[BUFLEN*4];
-		int  ibuf[BUFLEN];
+		char cbuf[CBUFLEN];
+		int  ibuf[IBUFLEN];
 	} buf;
 
 	int i,j;
 	int count=0;
-	int  bufLen=BUFLEN*4;
 	struct timespec ns;
-	int save_sys_clk_rate;
 	UDP_communication udp(TESTPORT,name,FALSE);
 
 
@@ -467,21 +467,21 @@ testUDPClient(int n_bytes, char *name)
 
 	while (count <  n_bytes) {
 		buf.ibuf[0] = ++count;
-		if (udp.writeUDPSocket(buf.cbuf,4) != 4) {
+		if (udp.writeUDPSocket(buf.cbuf,CBUFLEN) != CBUFLEN) {
 			printf("Couldn't write all bytes\n");
 		}
 
 		// wait a moment
 		if (USE_SLEEP) {
 			ns.tv_sec=0;
-			ns.tv_nsec=100000;
+			ns.tv_nsec=1000000;
 			nanosleep(&ns,NULL);
 		}
 	}
 
 	// a server termination message
 	buf.ibuf[0] = -1;
-	udp.writeUDPSocket(buf.cbuf,4);
+	udp.writeUDPSocket(buf.cbuf,CBUFLEN);
 
 	// close down the server
 	udp.closeUDPSocket();
