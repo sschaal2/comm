@@ -16,6 +16,12 @@
 #ifndef UDP_COMMUNICATION_H_
 #define UDP_COMMUNICATION_H_
 
+#include <iostream>
+#include <cstdlib>
+#include <netinet/in.h>
+#include <string.h>
+
+
 // defines
 #ifndef ERROR
 #define ERROR (-1)
@@ -39,9 +45,7 @@ testUDPClient(int n_bytes, char *name);
 
 class UDP_communication {
 public:
-	UDP_communication(int serverPortNum,
-			char *serverName,
-			int serverFlag);
+	UDP_communication();
 
 	virtual ~UDP_communication();
 
@@ -60,11 +64,19 @@ public:
 	int
 	checkUDPSocket(void);
 
-	int                 active;          //!< socket active or not
+	int
+	makeUDPServer(int serverPortNum, char *serverName);
+
+	int
+	makeUDPClient(int socketPortNum, char *clientName);
+
+
+	bool                active;          //!< socket active or not
 
 
 private:
-	struct sockaddr_in  serverAddr;      //!< server's socket address
+	struct sockaddr_in  socketAddr;      //!< server's socket address
+	bool				is_server;
 	int                 sFd;             //!< socket file descriptor
 
 

@@ -26,6 +26,9 @@
 #include "string.h"
 #include "sys/ioctl.h"
 #include "netdb.h"
+#include "errno.h"
+
+
 
 // my utilities library
 #include "utility.h"
@@ -48,13 +51,13 @@ namespace udp_communication {
 
  \remarks
 
- A socket is created that can subsequently be used in communication. The
- socket can be either a server of client socket.
+ A client socket is created that can subsequently be used in communication. The
+ socket can be changed to become a server socket.
 
  *******************************************************************************
  Function Parameters: [in]=input,[out]=output
 
- \param[in]     serverPortNum     : which port to use
+ \param[in]     socketPortNum     : which port to use
  \param[in]     serverName        : name or IP address of server -- pass "" to use
                                     localhost
  \param[in]     serverFlag        : TRUE/FALSE if socket is for server or not
@@ -63,47 +66,19 @@ namespace udp_communication {
 
  ******************************************************************************/
 UDP_communication::
-UDP_communication(int serverPortNum,
-		char *serverName,
-		int serverFlag)
+UDP_communication()
 {
 
 	int            	sockAddrSize;   // size of socket address structure
 	unsigned int   	opts;           // socket options
 	unsigned int	n,m;
 
-	// if something goes wrong, the socket is inactive
+	// The socket is inactive until all information has been provided
 	active = FALSE;
-
-	// set up the local address
-	sockAddrSize = sizeof (struct sockaddr_in);
-	bzero ((char *) &serverAddr, sockAddrSize);
-	serverAddr.sin_family  = AF_INET;
-	serverAddr.sin_port    = htons (serverPortNum);
-
-	if (strcmp(serverName,"")==0) {
-		// use localhost as server
-		serverAddr.sin_addr.s_addr = htonl (INADDR_ANY);
-	} else {
-		// determine server from serverName
-		struct hostent *host_ent;
-		struct in_addr *addr_ptr;
-
-		if ((host_ent = (struct hostent *) gethostbyname (serverName)) == NULL) {
-			if ((serverAddr.sin_addr.s_addr = inet_addr(serverName)) == (unsigned int) ERROR) {
-				printf("Error: unknown server name\n");
-				return;
-			}
-		} else {
-			addr_ptr = (struct in_addr *) *host_ent->h_addr_list;
-			serverName = inet_ntoa (*addr_ptr);
-			serverAddr.sin_addr.s_addr = inet_addr(serverName);
-		}
-	}
+	is_server = FALSE;
 
 	// create a UDP-based socket
 	if ((sFd = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == ERROR) {
-//		if ((sFd = socket (AF_INET, SOCK_STREAM, 0)) == ERROR) {
 		printf("Error: could not create socket\n");
 		return;
 	}
@@ -133,17 +108,6 @@ UDP_communication(int serverPortNum,
 #endif
 	 */
 
-	if (serverFlag) {
-		// bind socket to local address
-		if (bind (sFd, (struct sockaddr *) &serverAddr, sockAddrSize) == ERROR) {
-			printf("Error: couldn't bind to socket address\n");
-			close (sFd);
-			return;
-		}
-	}
-
-	active = TRUE;
-
 
 }
 
@@ -159,7 +123,7 @@ UDP_communication(int serverPortNum,
  *******************************************************************************
  Function Parameters: [in]=input,[out]=output
 
- \param[in]     serverPortNum     : which port to use
+ \param[in]     socketPortNum     : which port to use
  \param[in]     serverName        : name or IP address of server -- pass "" to use
                                     localhost
  \param[in]     serverFlag        : TRUE/FALSE if socket is for server or not
@@ -212,6 +176,11 @@ readUDPSocket(char *buf,
 
 	if (!active) {
 		printf("Socket not initialized\n");
+		return FALSE;
+	}
+
+	if (!is_server) {
+		printf("This is not a server socket\n");
 		return FALSE;
 	}
 
@@ -334,12 +303,149 @@ writeUDPSocket(char *buf,
 	// send request to server
 	sockAddrSize = sizeof (struct sockaddr_in);
 	if ((bufLenSent = sendto (sFd, (caddr_t) buf, bufLen, 0,
-			(struct sockaddr *) &serverAddr, sockAddrSize)) == ERROR) {
+			(struct sockaddr *) &socketAddr, sockAddrSize)) == ERROR) {
 		printf("Error: could not write to socket\n");
 		return FALSE;
 	}
 
 	return bufLenSent;
+}
+/*!*****************************************************************************
+ *******************************************************************************
+ \note  makeUDPServer
+ \date  Jan 2016
+
+ \remarks
+
+ Converts the current client socket to become a server
+
+ *******************************************************************************
+ Function Parameters: [in]=input,[out]=output
+
+ \param[in]     socketPortNum     : which port to use
+ \param[in]     serverName        : name or IP address of server -- pass "" to use
+                                    localhost
+
+ returns TRUE if all OK, otherwise FALSE
+
+ ******************************************************************************/
+int UDP_communication::
+makeUDPServer(int socketPortNum, char *serverName)
+
+{
+
+	int            	sockAddrSize;   // size of socket address structure
+	unsigned int   	opts;           // socket options
+	unsigned int	n,m;
+
+	// if something goes wrong, the socket is inactive
+	if (active) {
+		printf("socket is already active as server socket\n");
+		return FALSE;
+	}
+
+	// set up the local address
+	sockAddrSize = sizeof (struct sockaddr_in);
+	bzero ((char *) &socketAddr, sockAddrSize);
+	socketAddr.sin_family  = AF_INET;
+	socketAddr.sin_port    = htons (socketPortNum);
+
+	if (strcmp(serverName,"")==0) {
+		// use localhost as server
+		socketAddr.sin_addr.s_addr = htonl (INADDR_ANY);
+	} else {
+		// determine server from serverName
+		struct hostent *host_ent;
+		struct in_addr *addr_ptr;
+
+		if ((host_ent = (struct hostent *) gethostbyname (serverName)) == NULL) {
+			if ((socketAddr.sin_addr.s_addr = inet_addr(serverName)) == (unsigned int) ERROR) {
+				printf("Error: unknown server name\n");
+				return FALSE;
+			}
+		} else {
+			addr_ptr = (struct in_addr *) *host_ent->h_addr_list;
+			serverName = inet_ntoa (*addr_ptr);
+			socketAddr.sin_addr.s_addr = inet_addr(serverName);
+		}
+	}
+
+	// bind socket to local address
+	if (bind (sFd, (struct sockaddr *) &socketAddr, sockAddrSize) == ERROR) {
+		printf("Error: couldn't bind to socket address (errno=%d)\n",errno);
+		return FALSE;
+	}
+
+	is_server = TRUE;
+	active = TRUE;
+
+	return TRUE;
+
+}
+
+
+/*!*****************************************************************************
+ *******************************************************************************
+	 \note  makeUDPClient
+	 \date  Jan 2016
+
+	 \remarks
+
+	 Specifies client specific information
+
+ *******************************************************************************
+	 Function Parameters: [in]=input,[out]=output
+
+	 \param[in]     socketPortNum     : which port to use
+	 \param[in]     clientName        : name or IP address of client -- pass "" to use
+	                                    localhost
+
+	 returns TRUE if all OK, otherwise FALSE
+
+ ******************************************************************************/
+int UDP_communication::
+makeUDPClient(int socketPortNum, char *clientName)
+
+{
+
+	int            	sockAddrSize;   // size of socket address structure
+	unsigned int   	opts;           // socket options
+	unsigned int	n,m;
+
+	// if something goes wrong, the socket is inactive
+	active = FALSE;
+	is_server = FALSE;
+
+	// set up the local address
+	sockAddrSize = sizeof (struct sockaddr_in);
+	bzero ((char *) &socketAddr, sockAddrSize);
+	socketAddr.sin_family  = AF_INET;
+	socketAddr.sin_port    = htons (socketPortNum);
+
+	if (strcmp(clientName,"")==0) {
+		// use localhost as server
+		socketAddr.sin_addr.s_addr = htonl (INADDR_ANY);
+	} else {
+		// determine server from clientName
+		struct hostent *host_ent;
+		struct in_addr *addr_ptr;
+
+		if ((host_ent = (struct hostent *) gethostbyname (clientName)) == NULL) {
+			if ((socketAddr.sin_addr.s_addr = inet_addr(clientName)) == (unsigned int) ERROR) {
+				printf("Error: unknown server name\n");
+				return FALSE;
+			}
+		} else {
+			addr_ptr = (struct in_addr *) *host_ent->h_addr_list;
+			clientName = inet_ntoa (*addr_ptr);
+			socketAddr.sin_addr.s_addr = inet_addr(clientName);
+		}
+	}
+
+	active = TRUE;
+
+	return TRUE;
+
 }
 
 /*!*****************************************************************************
@@ -356,8 +462,9 @@ writeUDPSocket(char *buf,
 
 
  ******************************************************************************/
-#define TESTPORT     5002
-#define IBUFLEN      100
+#define TESTPORTSERVER     5002
+#define TESTPORTCLIENT     5002
+#define IBUFLEN     1 
 #define CBUFLEN		 (IBUFLEN*sizeof(int))
 void
 testUDPServer(char *name)
@@ -377,7 +484,9 @@ testUDPServer(char *name)
 	double average_message_size = 0;
 	struct timespec ns;
 	int save_sys_clk_rate;
-	UDP_communication udp(TESTPORT,name,TRUE);
+	UDP_communication udp;
+
+	udp.makeUDPServer(TESTPORTSERVER,name);
 
 	// check whether socket creation was successful
 	if (!udp.active) {
@@ -456,8 +565,10 @@ testUDPClient(int n_bytes, char *name)
 	int i,j;
 	int count=0;
 	struct timespec ns;
-	UDP_communication udp(TESTPORT,name,FALSE);
+	int save_sys_clk_rate;
+	UDP_communication udp;
 
+	udp.makeUDPClient(TESTPORTCLIENT,name);
 
 	// test for active socket
 	if (!udp.active) {
@@ -481,7 +592,7 @@ testUDPClient(int n_bytes, char *name)
 
 	// a server termination message
 	buf.ibuf[0] = -1;
-	udp.writeUDPSocket(buf.cbuf,CBUFLEN);
+	udp.writeUDPSocket(buf.cbuf,4);
 
 	// close down the server
 	udp.closeUDPSocket();
