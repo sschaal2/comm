@@ -89,8 +89,9 @@ UDP_communication()
 	printf("Socket buffer is %d bytes\n",n);
 	fflush(stdout);
 
-	// make sure the socket uses blocking mode
+	// make sure the socket uses blocking mode by default
 	opts = FALSE;
+	non_block = opts;
 	ioctl(sFd,FIONBIO,(unsigned long) (&opts));
 
 	/*
@@ -189,8 +190,13 @@ readUDPSocket(char *buf,
 	if ((bufLenReceived = recvfrom (sFd, buf, bufLen, 0,
 			(struct sockaddr *) &clientAddr,
 			&sockAddrSize)) == ERROR) {
-		printf("Error when reading from socket\n");
-		return FALSE;
+
+		if (non_block && (errno==EAGAIN || errno==EWOULDBLOCK))
+			return 0;
+		else {
+			printf("Error when reading from socket\n");
+			return FALSE;
+		}
 	}
 
 	// convert inet address to dot notation
@@ -205,12 +211,45 @@ readUDPSocket(char *buf,
 
 /*!*****************************************************************************
  *******************************************************************************
+ \note  setUDPBlocking
+ \date  May 2004
+
+ \remarks
+
+ Set (or unsets) the blocking status of a socket.
+
+ *******************************************************************************
+ Function Parameters: [in]=input,[out]=output
+
+ 	 \param [in]   do_not_block: FALSE for a blocking socket, TRUE for non blocking
+
+ returns number of bytes available for reading
+
+ ******************************************************************************/
+void UDP_communication::
+setUDPNonBlocking(int do_not_block)
+{
+
+	if (!active) {
+		printf("Socket not initialized\n");
+		return;
+	}
+
+	ioctl(sFd,FIONBIO,(unsigned long) (&do_not_block));
+	non_block = do_not_block;
+
+}
+
+/*!*****************************************************************************
+ *******************************************************************************
  \note  checkUDPSocket
  \date  May 2004
 
  \remarks
 
- checks for available data in a socket
+ checks for available data in a socket. Note that depending on the unix system,
+ this may return just the length of the next UDP package, or the amount of all
+ UDP packages in the socket buffer.
 
  *******************************************************************************
  Function Parameters: [in]=input,[out]=output
@@ -234,7 +273,6 @@ checkUDPSocket(void)
 
 	return n_bytes;
 }
-
 
 /*!*****************************************************************************
  *******************************************************************************
@@ -462,8 +500,8 @@ makeUDPClient(int socketPortNum, char *clientName)
 
 
  ******************************************************************************/
-#define TESTPORTSERVER     5002
-#define TESTPORTCLIENT     5002
+#define TESTPORTSERVER     55002
+#define TESTPORTCLIENT     55002
 #define IBUFLEN     1 
 #define CBUFLEN		 (IBUFLEN*sizeof(int))
 void

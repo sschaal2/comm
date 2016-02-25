@@ -28,10 +28,10 @@
 #endif
 
 
-#define CLMCPORT1     5003
-#define CLMCPORT2     5004
-#define CLMCPORT3     5005
-#define CLMCPORT4     5006
+#define CLMCPORT1     55003
+#define CLMCPORT2     55004
+#define CLMCPORT3     55005
+#define CLMCPORT4     55006
 
 
 namespace udp_communication {
@@ -64,6 +64,9 @@ public:
 	int
 	checkUDPSocket(void);
 
+	void
+	setUDPNonBlocking(int non_block);
+
 	int
 	makeUDPServer(int serverPortNum, char *serverName);
 
@@ -78,6 +81,7 @@ private:
 	struct sockaddr_in  socketAddr;      //!< server's socket address
 	bool				is_server;
 	int                 sFd;             //!< socket file descriptor
+	bool                non_block;       //!< TRUE if non-blocking socket, FALSE otherwise
 
 
 };
