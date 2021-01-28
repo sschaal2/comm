@@ -33,7 +33,7 @@
 // my utilities library
 #include "utility.h"
 
-#include "UDP_communication.h"
+#include "udp_communication.h"
 
 // sleep or not?  If yes, make sure the timer has proper low resolution,
 // but also that the system does not block due to too much polling. Note

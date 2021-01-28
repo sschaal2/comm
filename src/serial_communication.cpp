@@ -85,6 +85,8 @@ SerialCommunication(char *fname, int baud, int mode)
 
   active_ = true;
   fd_ = serial_fd;
+
+  printf("Serial port %s for mode %d opened successfully\n",fname,mode);  
   
 }
 

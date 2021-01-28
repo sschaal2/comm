@@ -52,12 +52,13 @@ namespace serial_communication {
     int
     checkSerial();
 
+    bool active_;    //!< serial port active or not
+
   private:
 
     int  fd_;
     int  baud_;
     int  mode_;
-    bool active_;    //!< serial port active or not
 
   };
 

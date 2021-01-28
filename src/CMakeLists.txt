@@ -31,15 +31,17 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo) # Optimization with debugging info
 
 # local defines
 include_directories(BEFORE ../src)
+include_directories(BEFORE ../include)
 
 set(SOURCES
-	UDP_communication.cpp
-	UDP_main.cpp )
+	udp_communication.cpp
+	udp_main.cpp )
 
 set(HEADERS
-	UDP_communication.h )
+	../include/udp_communication.h
+	../include/serial_communication.h )	
 
-add_library(comm UDP_communication.cpp)
+add_library(comm UDP_communication.cpp serial_communication.cpp)
 install(FILES ${HEADERS} DESTINATION ${LAB_INCLUDES})
 install(TARGETS comm ARCHIVE DESTINATION ${LAB_LIBDIR})
 

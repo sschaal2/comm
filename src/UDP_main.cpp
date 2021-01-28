@@ -21,7 +21,7 @@
 
 /* local headers */
 #include "utility.h"
-#include "UDP_communication.h"
+#include "udp_communication.h"
   
 /* local functions */
 
