@@ -29,22 +29,32 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo) # Optimization with debugging info
 #set(CMAKE_BUILD_TYPE Release)       # Optimization 
 #set(CMAKE_BUILD_TYPE Debug)         # Debug
 
+set(CMAKE_CXX_FLAGS "-fpermissive ${CMAKE_CPP_FLAGS}")
+
 # local defines
 include_directories(BEFORE ../src)
 include_directories(BEFORE ../include)
+include_directories(BEFORE ../../SOEM/install/include/soem)
+
+link_directories(AFTER ../..//SOEM/install/lib)
+
+message("${LINK_DIRECTORIES}")
 
 set(SOURCES
-	udp_communication.cpp
-	udp_main.cpp )
+  udp_communication.cpp
+  serial_communication.cpp
+  ethercat_communication.cpp )
 
 set(HEADERS
 	../include/udp_communication.h
-	../include/serial_communication.h )	
+	../include/serial_communication.h
+	../include/ethercat_communication.h )	      
 
-add_library(comm UDP_communication.cpp serial_communication.cpp)
+add_library(comm ${SOURCES})
 install(FILES ${HEADERS} DESTINATION ${LAB_INCLUDES})
 install(TARGETS comm ARCHIVE DESTINATION ${LAB_LIBDIR})
 
-add_executable(xudpTest ${SOURCES})
-target_link_libraries(xudpTest comm ${LAB_STD_LIBS})
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/xudpTest DESTINATION ${LAB_BINDIR})
+add_executable(xethercatTest ethercat_communication_test.cpp)
+target_link_directories(xethercatTest PRIVATE ${LAB_ROOT}/SOEM/install/lib)
+target_link_libraries(xethercatTest comm soem ${LAB_STD_LIBS})
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/xethercatTest DESTINATION ${LAB_BINDIR})
