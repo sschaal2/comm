@@ -29,16 +29,12 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo) # Optimization with debugging info
 #set(CMAKE_BUILD_TYPE Release)       # Optimization 
 #set(CMAKE_BUILD_TYPE Debug)         # Debug
 
-set(CMAKE_CXX_FLAGS "-fpermissive ${CMAKE_CPP_FLAGS}")
-
 # local defines
 include_directories(BEFORE ../src)
 include_directories(BEFORE ../include)
 include_directories(BEFORE ../../SOEM/install/include/soem)
 
 link_directories(AFTER ../..//SOEM/install/lib)
-
-message("${LINK_DIRECTORIES}")
 
 set(SOURCES
   udp_communication.cpp
@@ -55,6 +51,5 @@ install(FILES ${HEADERS} DESTINATION ${LAB_INCLUDES})
 install(TARGETS comm ARCHIVE DESTINATION ${LAB_LIBDIR})
 
 add_executable(xethercatTest ethercat_communication_test.cpp)
-target_link_directories(xethercatTest PRIVATE ${LAB_ROOT}/SOEM/install/lib)
 target_link_libraries(xethercatTest comm soem ${LAB_STD_LIBS})
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/xethercatTest DESTINATION ${LAB_BINDIR})

@@ -194,7 +194,7 @@ Function Parameters: [in]=input,[out]=output
 
 ******************************************************************************/
 int EthercatCommunication::
-InitEthercat(char *ifname)
+InitEthercat(const char *ifname)
 {
 
   int i, j, chk;  
@@ -294,12 +294,12 @@ InitEthercat(char *ifname)
    
 \remarks 
 
-initializes the running ethercat communication
+runs one send/receive on the ethercat
 
 *******************************************************************************
 Function Parameters: [in]=input,[out]=output
 
-\param[in]     ifname: interface name to use for socket
+none
 
 ******************************************************************************/
 int EthercatCommunication::
@@ -311,6 +311,99 @@ RunEthercat()
     // ethercat I/O (assumes that the input to the ethercat communication
     // has been configured before appropriately
     ec_send_processdata();
+    wkc_ = ec_receive_processdata(EC_TIMEOUTRET);
+    
+    if(wkc_ >= expectedWKC_) {
+      
+      return TRUE;
+      
+    } else {
+      
+      // check error handling
+      if (!EthercatCommunication::CheckEthercat((void*) &ctime)) {
+	
+	return FALSE;
+	
+      } else {
+	
+	// try again
+	ec_send_processdata();
+	wkc_ = ec_receive_processdata(EC_TIMEOUTRET);
+	
+	if(wkc_ >= expectedWKC_)
+	  return TRUE;
+	else
+	  return FALSE;
+      }
+      
+    }
+    
+  } else {
+
+    printf("Ethercat on interface >%s< is not active\n",ifname_);
+    return FALSE;
+
+  }
+  
+
+}
+/*!*****************************************************************************
+ *******************************************************************************
+\note  SendEthercat
+\date  Oct 2021
+   
+\remarks 
+
+runs a send on the ethercat
+
+*******************************************************************************
+Function Parameters: [in]=input,[out]=output
+
+none
+
+******************************************************************************/
+int EthercatCommunication::
+SendEthercat()
+{
+
+  if (active_) {
+    
+    // ethercat I/O (assumes that the input to the ethercat communication
+    // has been configured before appropriately
+    ec_send_processdata();
+
+    return TRUE;
+    
+  } else {
+
+    printf("Ethercat on interface >%s< is not active\n",ifname_);
+    return FALSE;
+
+  }
+  
+
+}
+/*!*****************************************************************************
+ *******************************************************************************
+\note  ReceiveEthercat
+\date  Oct 2021
+   
+\remarks 
+
+receives the information of the previous send command
+
+*******************************************************************************
+Function Parameters: [in]=input,[out]=output
+
+none
+
+******************************************************************************/
+int EthercatCommunication::
+ReceiveEthercat()
+{
+
+  if (active_) {
+    
     wkc_ = ec_receive_processdata(EC_TIMEOUTRET);
     
     if(wkc_ >= expectedWKC_) {

@@ -34,9 +34,9 @@ namespace ethercat_communication {
     virtual ~EthercatCommunication();
 
     int
-    InitEthercat(char *ifname);
+    InitEthercat(const char *ifname);
 
-    bool active_;    //!< socket active or not
+    bool               active_;      
     int                expectedWKC_;
     int                Obytes_;
     int                Ibytes_;
@@ -45,6 +45,12 @@ namespace ethercat_communication {
 
     int
     RunEthercat();
+
+    int
+    SendEthercat();
+
+    int
+    ReceiveEthercat();
     
   private:
 
