@@ -74,6 +74,12 @@ SerialCommunication(char *fname, int baud, int mode)
   cfsetispeed(&options, baud);
   cfsetospeed(&options, baud);
 
+  // PARITY: NONE, 1 Stopbit, 8bits bytesize, disable hardware flow control
+  options.c_cflag &= ~PARENB; 
+  options.c_cflag &= ~CSTOPB;
+  options.c_cflag |= CS8;
+  options.c_cflag &= ~CRTSCTS;
+
   // make this a raw communication
   cfmakeraw(&options);
 
